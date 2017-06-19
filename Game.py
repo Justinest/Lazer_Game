@@ -13,6 +13,41 @@ SCREEN_HEIGHT = 1080
 pygame.init()
 
 
+class Block2(pygame.sprite.Sprite):
+    """
+    This class represents the ball
+    It derives from the "Sprite" class in Pygame
+    """
+    def __init__(self, filename):
+     
+        # Call the parent class (Sprite) constructor
+        super().__init__()
+     
+        # Load the image
+        self.image = pygame.image.load("Hydra.png").convert()
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+ 
+    def reset_pos(self):
+        """ Reset position to the top of the screen, at a random x location.
+        Called by update() or the main program loop if there is a collision.
+        """
+        self.rect.y = random.randrange(-100, -20)
+        self.rect.x = random.randrange(0, screen_width)
+ 
+    def update(self):
+        """ Called each frame. """
+ 
+        # Move block down one pixel
+        self.rect.y += 10 
+ 
+        # If block is too far down, reset to top of screen.
+        if self.rect.y > 950:
+            self.reset_pos()
+            
+        
+
+
 
         
 class Block1(pygame.sprite.Sprite):
@@ -153,7 +188,11 @@ all_sprites_list = pygame.sprite.Group()
 
 pygame.display.set_caption("Justin's Game")
 
-for i in range(400):
+
+score = 0
+
+
+for i in range(100):
     # This represents a block
     block = Block1("Hydra.png")
  
@@ -165,7 +204,11 @@ for i in range(400):
     block_list.add(block)
     block_list1.add(block)
     all_sprites_list.add(block)
-    
+
+
+
+
+
 # Create a Ship
 player = Ship("player.png")
 
@@ -180,6 +223,7 @@ click_sound1 = pygame.mixer.Sound("Star.ogg")
 click_sound2 = pygame.mixer.Sound("Ending.ogg")
 click_sound3 = pygame.mixer.Sound("Cringe.ogg")
 click_sound4 = pygame.mixer.Sound("Metal.ogg")
+click_sound5 = pygame.mixer.Sound("ohey.ogg")
  
  
 # Loop until the user clicks the close button.
@@ -220,21 +264,32 @@ while not done and display_instructions:
     background_image1 = pygame.image.load("TheOne.jpg").convert()
     screen.blit(background_image1, background_position1)
     
-    if instruction_page == 1:
+    if instruction_page == 1:  
+        try:
+            file = open('highscores.txt', 'r')
+            lines = file.readlines()
+            prevhighscore = int(lines[0])
+            prevname = lines[1]
+            file.close()
+        except IOError:
+            file = open('highscores.txt', 'w')
+            prevhighscore = str(0) + "\n"
+            file.write(prevhighscore)
+            writename = name + "\n"
+            file.write(writename)
+            file.close()      
         # Draw instructions, page 1
         # This could also load an image created in another program.
         # That could be both easier and more flexible.
         text = font.render("Welcome To My Game", True, WHITE)
+        text = font.render("Current Highscore: {0}".format(prevhighscore), True, WHITE)       
         screen.blit(text, [850, 450])    
         click_sound1.play()  
         
+        
+        
        
         
-         
-       
-    
-       
-       
 
     if instruction_page == 2:
         # Draw instructions, page 1
@@ -252,11 +307,14 @@ while not done and display_instructions:
         text = font.render(name, True, WHITE)
         screen.blit(text, [220, 40])        
  
-        text = font.render("Shoot Down the enemies without losing your 10 lives", True, WHITE)
+        text = font.render("Shoot Down the enemies", True, WHITE)
         screen.blit(text, [10, 80])
+        
+        text = font.render("Losing all your lives or ammo will make you lose, tread carefully", True, WHITE)
+        screen.blit(text, [10, 120])        
        
         text = font.render("Hit enter to continue", True, WHITE)
-        screen.blit(text, [10, 120])
+        screen.blit(text, [10, 160])
  
     if instruction_page == 3:
         # Draw instructions, page 2
@@ -287,18 +345,51 @@ while not done and display_instructions:
     background_image = pygame.image.load("SPACERINO.jpg").convert() 
     
     #Ammo
-    ammo = 120
+    ammo = 90
     
     #score
     score = 0
     
     #Life
-    life = 10
+    life = 25
+    
+ 
+    
+    #Lost
+    
+    
 # -------- Main Program Loop -----------
 while not done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            done = True    
+            # Calculations for the displayed highscore            
+            scoregg = life + ammo + score
+            # Opens the highscore file and reads the lines.
+            try:
+                file = open('highscores.txt', 'r')
+                lines = file.readlines()
+                prevhighscore_new = int(lines[0])
+                prevname = lines[1]
+                file.close()                    
+            
+            # If there is no highscore file, make one.
+            except IOError:
+                file = open('highscores.txt', 'w')
+                writescore = str(scoregg) + "\n"
+                file.write(writescore)
+                writename = name + "\n"
+                file.write(writename)
+                file.close()
+    
+            # Check if the new score is better than the highscore.
+            if scoregg > prevhighscore_new:
+                file = open('highscores.txt', 'w')
+                writescore = str(scoregg) + "\n"
+                file.write(writescore)
+                writename = name + "\n"
+                file.write(writename)
+                file.close()                      
+                done = True    
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
             # Fire a bullet if the user clicks the mouse button
@@ -345,14 +436,14 @@ while not done:
             all_sprites_list.remove(bullet)
             score += 1 
             click_sound3.play()
-            print(score)
+            print(score)               
             #Add Ammo for level two
             #Victory Conditions
             if score == 50:
                 ammo +=50
-            #if score == 100:
+            #if score == 300:
                 #done = True
-        
+    
  
         # Remove the bullet if it flies up off the screen
         if bullet.rect.y < -2:
@@ -375,7 +466,52 @@ while not done:
     ammotext = "Ammo:" +str(ammo)
     text = font.render(ammotext, True, WHITE)
     screen.blit(text, [10, 90])     
+    
+    #highscore
+    highscore = life + ammo + score 
+    highscoretext = "Highscore:" +str(highscore)
+    text = font.render(highscoretext, True, WHITE)
+    screen.blit(text, [10, 130])        
+    
  
+
+    if score < 75:
+        levelonetext = "Level One"
+        text = font.render(levelonetext, True, WHITE)
+        screen.blit(text, [850, 10])        
+        
+    if score == 75:
+        #Remove the Enemies for level 2
+        for block in block_list:
+            block_list.remove(block)
+        for block in block_list1:
+            block_list1.remove(block)    
+            all_sprites_list.remove(block)
+    if score > 75:
+        levelonetext = "Level Two"
+        text = font.render(levelonetext, True, WHITE)
+        screen.blit(text, [850, 10])              
+ 
+            
+    if score == 75:
+        for i in range(50):
+            # This represents a block
+            block = Block2("Hydra.png")
+         
+            # Set a random location for the block
+            block.rect.x = random.randrange(screen_width)
+            block.rect.y = random.randrange(screen_height)
+         
+            # Add the block to the list of objects
+            block_list.add(block)
+            block_list1.add(block)
+            all_sprites_list.add(block)
+            
+
+
+    
+
+
     # Get the current mouse position. This returns the position
     # as a list of two numbers.
     pos = pygame.mouse.get_pos()
@@ -390,17 +526,86 @@ while not done:
     blocks_hit_list = pygame.sprite.spritecollide(player, block_list, True) 
  
     # Check the list of collisions.
-    # Score 
+    # life 
     for block in blocks_hit_list:
         life -=1
         click_sound4.play()
         print( life )
         #if life == 0:
             #done = True
+    
+            
             
          
     # Draw all the spites
     all_sprites_list.draw(screen)
+    
+    #lose
+    if ammo < 0:
+        background_image1 = pygame.image.load("Soo.jpg").convert()
+        screen.blit(background_image1, background_position1)  
+        pygame.mixer.pause()
+        #Removes all the sprites
+        for block in block_list:
+            block_list.remove(block)
+            all_sprites_list.remove(block)
+            all_sprites_list.remove(bullet)
+            all_sprites_list.remove(bullet1)       
+        #Removes the sprites
+        for block in block_list1:
+            block_list1.remove(block)    
+            all_sprites_list.remove(block)
+            all_sprites_list.remove(player)
+            all_sprites_list.remove(bullet)
+            bullet_list.remove(bullet) 
+            all_sprites_list.remove(bullet1)
+            bullet_list.remove(bullet1)    
+    #Lost        
+    if life < 1:
+        background_image1 = pygame.image.load("Soo.jpg").convert()
+        screen.blit(background_image1, background_position1)  
+        pygame.mixer.pause()
+        #Removes all the sprites
+        for block in block_list:
+            block_list.remove(block)
+            all_sprites_list.remove(block)
+            bullet = Bullet1()
+            bullet1 = Bullet()            
+            all_sprites_list.remove(bullet)
+            all_sprites_list.remove(bullet1)       
+        #Removes the sprites
+        for block in block_list1:
+            block_list1.remove(block)    
+            all_sprites_list.remove(block)
+            all_sprites_list.remove(player)
+            all_sprites_list.remove(bullet)
+            bullet_list.remove(bullet) 
+            all_sprites_list.remove(bullet1)
+            bullet_list.remove(bullet1)        
+    
+    #Victory 
+    if score == 100:        
+        background_image1 = pygame.image.load("ohey.jpg").convert()
+        screen.blit(background_image1, background_position1)  
+        text = font.render(levelonetext, False, WHITE)
+        pygame.mixer.pause()
+        screen.blit(text, [850, 450])    
+        click_sound1.play()          
+        #Removes all the sprites
+        for block in block_list:
+            block_list.remove(block)
+            all_sprites_list.remove(block)
+            all_sprites_list.remove(bullet)
+            all_sprites_list.remove(bullet1)       
+        #Removes the sprites
+        for block in block_list1:
+            block_list1.remove(block)    
+            all_sprites_list.remove(block)
+            all_sprites_list.remove(player)
+            all_sprites_list.remove(bullet)
+            bullet_list.remove(bullet) 
+            all_sprites_list.remove(bullet1)
+            bullet_list.remove(bullet1)    
     
     # Go ahead and update the screen with what we've drawn.
     pygame.display.flip()
